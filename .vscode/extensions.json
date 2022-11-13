@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "danielzzz.vscode-php-cs-fixer-reloaded",
+        "swordev.phpstan",
+        "bmewburn.vscode-intelephense-client"
+    ]
+}

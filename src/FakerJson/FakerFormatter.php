@@ -15,13 +15,11 @@ use Webmozart\Assert\InvalidArgumentException as AssertInvalidArgumentException;
 class FakerFormatter
 {
     /**
-     * @param bool $fakerJson
      * @param string|null $locale
      * @param string|null $method
      * @param array<string,mixed> $parameters
      */
     public function __construct(
-        protected bool $fakerJson = true,
         protected ?string $locale = null,
         protected ?string $method = null,
         protected array $parameters = [],
@@ -75,14 +73,8 @@ class FakerFormatter
      */
     public static function fromArray(array $array): self
     {
-        if (!isset($array['method'])) {
+        if (!self::isFakerJsonArray($array)) {
             throw new InvalidArgumentException('array index method must exist');
-        }
-
-        $fakerJson = false;
-
-        if (isset($array['faker_json'])) {
-            $fakerJson = (bool) $array['faker_json'];
         }
 
         $locale = null;
@@ -96,7 +88,6 @@ class FakerFormatter
         Assert::string($method);
 
         $instance = new self(
-            fakerJson: $fakerJson,
             locale: $locale,
             method: $method,
         );
@@ -107,7 +98,7 @@ class FakerFormatter
             Assert::isIterable($parameters);
 
             foreach ($parameters as $key => $value) {
-                if ($value['faker_json'] ?? false) {
+                if (is_array($value) && self::isFakerJsonArray($value)) {
                     $instance->addParameter($key, self::fromArray($value));
                 } else {
                     $instance->addParameter($key, $value);
@@ -116,6 +107,15 @@ class FakerFormatter
         }
 
         return $instance;
+    }
+
+    /**
+     * @param array<string,mixed> $array
+     * @return bool
+     */
+    public static function isFakerJsonArray(array $array): bool
+    {
+        return isset($array['method']);
     }
 
     /**
@@ -231,7 +231,6 @@ class FakerFormatter
     public function toArray(): array
     {
         $result = [
-            'faker_json' => $this->fakerJson,
             'method' => $this->method,
         ];
 

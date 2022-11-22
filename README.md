@@ -5,7 +5,6 @@ The JSON is looks like,
 
 ```json
 {
-  "faker_json": true,
   "method": "numberBetween",
   "parameters": {
     "min": 20,

@@ -19,7 +19,6 @@ class FakerJsonTest extends TestCase
         $json = $fakerFormatter->toJson();
         $deserializedFakerFormatter = FakerFormatter::fromJson($json);
 
-        $this->assertEquals($fakerFormatter->fakerJson, $deserializedFakerFormatter->fakerJson);
         $this->assertEquals($fakerFormatter->method, $deserializedFakerFormatter->method);
         $this->assertEquals($fakerFormatter->locale, $deserializedFakerFormatter->locale);
         $this->assertEquals(

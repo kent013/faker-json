@@ -97,11 +97,11 @@ class FakerFormatter
         if (!empty($parameters)) {
             Assert::isIterable($parameters);
 
-            foreach ($parameters as $key => $value) {
-                if (is_array($value) && self::isFakerJsonArray($value)) {
-                    $instance->addParameter($key, self::fromArray($value));
-                } else {
-                    $instance->addParameter($key, $value);
+            foreach ($parameters as $value) {
+                if (isset($value['faker_definition']) && is_array($value['faker_definition']) && self::isFakerJsonArray($value['faker_definition'])) {
+                    $instance->addParameter($value['name'], self::fromArray($value['faker_definition']));
+                } elseif (isset($value['value'])) {
+                    $instance->addParameter($value['name'], $value['value']);
                 }
             }
         }
@@ -243,9 +243,9 @@ class FakerFormatter
 
             foreach ($this->parameters as $key => $value) {
                 if ($value instanceof self) {
-                    $parameters[$key] = $value->toArray();
+                    $parameters[] = ['name' => $key, 'faker_definition' => $value->toArray()];
                 } else {
-                    $parameters[$key] = $value;
+                    $parameters[] = ['name' => $key, 'value' => $value];
                 }
             }
             $result['parameters'] = $parameters;

@@ -243,9 +243,9 @@ class FakerFormatter
 
             foreach ($this->parameters as $key => $value) {
                 if ($value instanceof self) {
-                    $parameters[] = ['name' => $key, 'faker_definition' => $value->toArray()];
+                    $parameters[] = ['name' => $key, 'use_faker' => true, 'faker_definition' => $value->toArray()];
                 } else {
-                    $parameters[] = ['name' => $key, 'value' => $value];
+                    $parameters[] = ['name' => $key, 'use_faker' => false, 'value' => $value];
                 }
             }
             $result['parameters'] = $parameters;

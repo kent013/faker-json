@@ -3,9 +3,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\FakerJson;
 
+use FakerJson\Exception\FakerFormatterNotFoundException;
+use FakerJson\Exception\FakerFormatterParameterNotFoundException;
 use FakerJson\FakerFormatter;
 use FakerJson\FakerJson;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Webmozart\Assert\Assert;
 
@@ -48,7 +49,12 @@ class FakerJsonTest extends TestCase
         $fakerFormatter = $this->getFakerFormatter();
         $fakerFormatter->method('invalid formatter');
 
-        $this->expectException(InvalidArgumentException::class);
+        try {
+            FakerJson::call($fakerFormatter);
+        } catch (FakerFormatterNotFoundException $e) {
+            $this->assertEquals('invalid formatter', $e->methodName());
+        }
+        $this->expectException(FakerFormatterNotFoundException::class);
         FakerJson::call($fakerFormatter);
     }
 
@@ -62,7 +68,13 @@ class FakerJsonTest extends TestCase
                 10
             );
 
-        $this->expectException(InvalidArgumentException::class);
+        try {
+            FakerJson::call($fakerFormatter);
+        } catch (FakerFormatterParameterNotFoundException $e) {
+            $this->assertEquals('realText', $e->methodName());
+            $this->assertEquals('fugafuga', $e->parameterName());
+        }
+        $this->expectException(FakerFormatterParameterNotFoundException::class);
         FakerJson::call($fakerFormatter);
     }
 

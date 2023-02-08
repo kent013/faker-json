@@ -2,6 +2,7 @@
 
 namespace FakerJson;
 
+use FakerJson\Exception\FakerFormatterParameterNotFoundException;
 use InvalidArgumentException;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException as AssertInvalidArgumentException;
@@ -190,7 +191,7 @@ class FakerFormatter
     public function parameter(string $name): mixed
     {
         if (!isset($this->parameters[$name])) {
-            throw new InvalidArgumentException("parameters ${name} is not exist");
+            throw new FakerFormatterParameterNotFoundException($this->method ?? '', $name);
         }
 
         return $this->parameters[$name];

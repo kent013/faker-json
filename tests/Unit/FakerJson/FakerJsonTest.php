@@ -5,6 +5,7 @@ namespace Tests\Unit\FakerJson;
 
 use FakerJson\FakerFormatter;
 use FakerJson\FakerJson;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Webmozart\Assert\Assert;
 
@@ -40,6 +41,29 @@ class FakerJsonTest extends TestCase
         Assert::string($result);
         $this->assertGreaterThanOrEqual($deserializedFakerFormatter->fakerFormatterParameter('maxNbChars')->fakerFormatterParameter('min')->intParameter('min'), mb_strlen($result));
         $this->assertLessThanOrEqual($deserializedFakerFormatter->fakerFormatterParameter('maxNbChars')->intParameter('max'), mb_strlen($result));
+    }
+
+    public function testCallUnknownFakerFormatter(): void
+    {
+        $fakerFormatter = $this->getFakerFormatter();
+        $fakerFormatter->method('invalid formatter');
+
+        $this->expectException(InvalidArgumentException::class);
+        FakerJson::call($fakerFormatter);
+    }
+
+    public function testCallFakerWithInvalidParameter(): void
+    {
+        $fakerFormatter = FakerFormatter::instance()
+            ->locale('ja_JP')
+            ->method('realText')
+            ->addParameter(
+                'fugafuga',
+                10
+            );
+
+        $this->expectException(InvalidArgumentException::class);
+        FakerJson::call($fakerFormatter);
     }
 
     public function testCallLocaleFaker(): void

@@ -5,6 +5,7 @@ namespace FakerJson;
 use Faker\Extension\ExtensionNotFound;
 use Faker\Generator;
 use InvalidArgumentException;
+use ReflectionMethod;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException as AssertInvalidArgumentException;
 
@@ -25,18 +26,34 @@ class FakerProxy
      */
     public function call(FakerFormatter $fakerFormatter): mixed
     {
+        Assert::string($fakerFormatter->method);
+        $formatter = $this->getFormatter($fakerFormatter->method);
+
+        // @phpstan-ignore-next-line
+        $method = new ReflectionMethod($formatter[0], $formatter[1]);
+        $methodParameters = $method->getParameters();
         $params = [];
 
         foreach ($fakerFormatter->parameters as $key => $value) {
+            $found = false;
+
+            foreach ($methodParameters as $methodParameter) {
+                if ($methodParameter->name == $key) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                throw new InvalidArgumentException("property {$key} is not exists in {$fakerFormatter->method} formatter");
+            }
+
             if ($value instanceof FakerFormatter) {
                 $params[$key] = self::call($value);
             } else {
                 $params[$key] = $value;
             }
         }
-
-        Assert::string($fakerFormatter->method);
-        $formatter = $this->getFormatter($fakerFormatter->method);
         return call_user_func_array($formatter, $params);
     }
 

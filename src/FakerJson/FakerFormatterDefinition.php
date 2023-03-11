@@ -7,6 +7,8 @@ use HaydenPierce\ClassFinder\ClassFinder;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
+use ReflectionNamedType;
+use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
 class FakerFormatterDefinition
@@ -18,7 +20,7 @@ class FakerFormatterDefinition
 
     /**
      * serialize into array
-     * @return array<string,mixed>
+     * @return array<string,array<int,array<string,mixed>>|string>
      */
     public function toArray(): array
     {
@@ -52,6 +54,13 @@ class FakerFormatterDefinition
                 $parameterDefinition = new FakerFormatterParameterDefinition($parameter);
                 $result['parameters'][] = $parameterDefinition->toArray();
             }
+        }
+
+        if ($this->method->hasReturnType()) {
+            $type = $this->method->getReturnType();
+            Assert::notNull($type);
+            Assert::isInstanceOf($type, ReflectionNamedType::class);
+            $result['return_type'] = $type->getName();
         }
         return $result;
     }
@@ -94,6 +103,10 @@ class FakerFormatterDefinition
                 $methodName = $method->getName();
 
                 if (isset($definitions[$methodName])) {
+                    continue;
+                }
+
+                if (in_array($methodName, ['__construct', 'withGenerator'])) {
                     continue;
                 }
                 $definitions[$methodName] = $formatterDefinition->toArray();

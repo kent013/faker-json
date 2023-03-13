@@ -76,3 +76,52 @@ as json
 ```php
 FakerJson::formatterLocalesAsJson();
 ```
+
+## Load third party providers
+
+To load third party providers to generate value, call addProvider prior to use the provider.
+
+```php
+FakerJson::addProvider(PHPFakerUtil::class);
+```
+
+Especially in Laravel, create `FakerJsonServiceProvider` and add it to `app.provider` config
+
+```php
+<?php declare(strict_types=1);
+
+namespace App\Providers;
+
+use Faker\Provider\PHPFakerUtil;
+use FakerJson\FakerJson;
+use Illuminate\Support\ServiceProvider;
+
+class FakerJsonServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        FakerJson::addProvider(PHPFakerUtil::class); 
+    }
+}
+```
+
+config/app.php
+
+```php
+'providers' => [
+    // ...
+    App\Providers\FakerJsonServiceProvider::class,
+],
+```
+
+

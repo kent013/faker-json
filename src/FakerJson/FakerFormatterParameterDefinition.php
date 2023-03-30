@@ -24,14 +24,14 @@ class FakerFormatterParameterDefinition
     {
         $result = [
             'name' => $this->parameter->getName(),
-            'hasType' => $this->parameter->hasType(),
+            'has_type' => $this->parameter->hasType(),
             'position' => $this->parameter->getPosition(),
-            'isOptional' => $this->parameter->isOptional(),
-            'isDefaultValueAvailable' => $this->parameter->isDefaultValueAvailable(),
+            'is_optional' => $this->parameter->isOptional(),
+            'is_default_value_available' => $this->parameter->isDefaultValueAvailable(),
         ];
 
         if ($this->parameter->isDefaultValueAvailable()) {
-            $result['defaultValue'] = $this->parameter->getDefaultValue();
+            $result['default_value'] = $this->parameter->getDefaultValue();
         }
 
         if ($this->parameter->hasType()) {

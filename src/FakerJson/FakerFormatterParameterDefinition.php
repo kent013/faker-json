@@ -7,6 +7,7 @@ use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionUnionType;
 use Webmozart\Assert\Assert;
 
 class FakerFormatterParameterDefinition
@@ -42,14 +43,31 @@ class FakerFormatterParameterDefinition
         if ($this->parameter->hasType()) {
             $type = $this->parameter->getType();
             Assert::notNull($type);
-            Assert::isInstanceOf($type, ReflectionNamedType::class);
             $result['has_type'] = true;
-            $result['type'] = $type->getName();
+
+            if ($type instanceof ReflectionNamedType) {
+                $result['type'] = $this->convertType($type->getName());
+            } else {
+                Assert::isInstanceOf($type, ReflectionUnionType::class);
+                $types = [];
+
+                foreach ($type->getTypes() as $type) {
+                    $types[] = $type->getName();
+                }
+                $result['type'] = $this->convertTypes($types);
+            }
         } elseif ($this->parameterDocCommentNode) {
             $result['has_type'] = true;
 
             if ($this->parameterDocCommentNode->type instanceof UnionTypeNode) {
-                $result['type'] = implode(',', $this->convertTypes($this->parameterDocCommentNode->type->types));
+                $types = [];
+
+                foreach ($this->parameterDocCommentNode->type->types as $type) {
+                    if ($type instanceof IdentifierTypeNode) {
+                        $types[] = $type->name;
+                    }
+                }
+                $result['type'] = $this->convertTypes($types);
             } elseif ($this->parameterDocCommentNode->type instanceof IdentifierTypeNode) {
                 $result['type'] = $this->convertType($this->parameterDocCommentNode->type->name);
             } else {
@@ -61,10 +79,10 @@ class FakerFormatterParameterDefinition
 
     /**
      * convert type and remove null/duplicated types
-     * @param array<IdentifierTypeNode> $types
-     * @return array<string>
+     * @param array<string> $types
+     * @return string
      */
-    protected function convertTypes(array $types): array
+    protected function convertTypes(array $types): string
     {
         $converted = [];
 
@@ -72,9 +90,11 @@ class FakerFormatterParameterDefinition
             if ($type === 'null') {
                 continue;
             }
-            $converted[] = $this->convertType($type->name);
+            $converted[] = $this->convertType($type);
         }
-        return array_unique($converted);
+        $converted = array_unique($converted);
+        sort($converted);
+        return  implode(',', $converted);
     }
 
     /**

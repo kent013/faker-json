@@ -2,6 +2,7 @@
 
 namespace Tests\Faker\Provider;
 
+use DateTime;
 use Faker\Provider\Base;
 
 class TestFakerProvider extends Base
@@ -15,6 +16,17 @@ class TestFakerProvider extends Base
      */
     public function testMethod1(string $param1, $param2, string $param3, ?string $param4): string
     {
-        return $param1 . $param2 . $param3 . ($param4 ?? '');
+        return 'test';
+    }
+
+    /**
+     * @param $param1
+     * @param string|int|float|array|DateTime|null $param2
+     * @return string
+     * @phpstan-ignore-next-line
+     */
+    public function testMethod2(string|int|float|array|DateTime|null $param1, $param2): string
+    {
+        return 'test';
     }
 }

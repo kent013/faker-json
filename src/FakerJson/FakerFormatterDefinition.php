@@ -21,6 +21,11 @@ use Webmozart\Assert\InvalidArgumentException;
 class FakerFormatterDefinition
 {
     /**
+     * default locale
+     */
+    public const DefaultLocale = 'default';
+
+    /**
      * lexer
      * @var Lexer|null
      */
@@ -61,10 +66,10 @@ class FakerFormatterDefinition
             'provider' => $providerName,
         ];
 
-        if (!is_null($locale) && preg_match('/^[a-z]{,2}_[a-z]+(_[a-z]+)?/i', $locale)) {
+        if (!is_null($locale) && preg_match('/^[a-z]{2}_[a-z]+(_[a-z]+)?$/i', $locale)) {
             $result['locale'] = $locale;
         } else {
-            $result['locale'] = 'default';
+            $result['locale'] = self::DefaultLocale;
         }
 
         $docCommentNode = $this->parseMethodDocComment();

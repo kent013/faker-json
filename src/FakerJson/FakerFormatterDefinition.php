@@ -4,6 +4,13 @@ namespace FakerJson;
 
 use Exception;
 use HaydenPierce\ClassFinder\ClassFinder;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use PHPStan\PhpDocParser\Parser\ConstExprParser;
+use PHPStan\PhpDocParser\Parser\PhpDocParser;
+use PHPStan\PhpDocParser\Parser\TokenIterator;
+use PHPStan\PhpDocParser\Parser\TypeParser;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -13,6 +20,18 @@ use Webmozart\Assert\InvalidArgumentException;
 
 class FakerFormatterDefinition
 {
+    /**
+     * lexer
+     * @var Lexer|null
+     */
+    protected static $lexer;
+
+    /**
+     * phpDocParser
+     * @var PhpDocParser|null
+     */
+    protected static $phpDocParser;
+
     public function __construct(
         protected ReflectionMethod $method,
     ) {
@@ -42,16 +61,27 @@ class FakerFormatterDefinition
             'provider' => $providerName,
         ];
 
-        if (!is_null($locale)) {
+        if (!is_null($locale) && preg_match('/^[a-z]{,2}_[a-z]+(_[a-z]+)?/i', $locale)) {
             $result['locale'] = $locale;
+        } else {
+            $result['locale'] = 'default';
         }
+
+        $docCommentNode = $this->parseMethodDocComment();
+        $parameterDocCommentNodes = [];
+
+        if ($docCommentNode) {
+            $parameterDocCommentNodes = $docCommentNode->getParamTagValues('@param');
+        }
+
         $parameters = $this->method->getParameters();
 
         if (!empty($parameters)) {
             $result['parameters'] = [];
 
             foreach ($parameters as $parameter) {
-                $parameterDefinition = new FakerFormatterParameterDefinition($parameter);
+                $parameterDocCommentNode = $this->filterParameterDocComment($parameterDocCommentNodes, $parameter->getName());
+                $parameterDefinition = new FakerFormatterParameterDefinition($parameter, $parameterDocCommentNode);
                 $result['parameters'][] = $parameterDefinition->toArray();
             }
         }
@@ -92,25 +122,40 @@ class FakerFormatterDefinition
         $definitions = [];
 
         foreach ($classnames as $classname) {
-            if (in_array($classname, ['Base'])) {
+            $definitions = array_merge($definitions, self::getFormatterDefinitionsFromClassname($classname));
+        }
+        return array_values($definitions);
+    }
+
+    /**
+     * @return array<int, mixed>
+     * @param class-string $classname
+     * @throws ReflectionException
+     * @throws InvalidArgumentException
+     */
+    public static function getFormatterDefinitionsFromClassname(string $classname): array
+    {
+        $definitions = [];
+
+        $class = new ReflectionClass($classname);
+        $methods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
+
+        foreach ($methods as $method) {
+            $formatterDefinition = new self($method);
+
+            if ($method->getDeclaringClass()->getName() !== $class->getName()) {
                 continue;
             }
-            $class = new ReflectionClass($classname);
-            $methods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
+            $methodName = $method->getName();
 
-            foreach ($methods as $method) {
-                $formatterDefinition = new self($method);
-                $methodName = $method->getName();
-
-                if (isset($definitions[$methodName])) {
-                    continue;
-                }
-
-                if (in_array($methodName, ['__construct', 'withGenerator'])) {
-                    continue;
-                }
-                $definitions[$methodName] = $formatterDefinition->toArray();
+            if (isset($definitions[$methodName])) {
+                continue;
             }
+
+            if (in_array($methodName, ['__construct', 'withGenerator'])) {
+                continue;
+            }
+            $definitions[$methodName] = $formatterDefinition->toArray();
         }
         return array_values($definitions);
     }
@@ -138,5 +183,72 @@ class FakerFormatterDefinition
         $locales = array_values($locales);
         sort($locales);
         return $locales;
+    }
+
+    /**
+     * @param array<ParamTagValueNode> $parameterDocCommentNodes
+     * @param string $name
+     * @return ParamTagValueNode|null
+     */
+    protected function filterParameterDocComment(array $parameterDocCommentNodes, string $name): ParamTagValueNode|null
+    {
+        foreach ($parameterDocCommentNodes as $parameterDocCommentNode) {
+            if ($parameterDocCommentNode->parameterName === "\${$name}") {
+                return $parameterDocCommentNode;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * phpstan lexer
+     * @return Lexer
+     */
+    protected static function getLexer()
+    {
+        if (is_null(self::$lexer)) {
+            self::$lexer = new Lexer();
+        }
+        return self::$lexer;
+    }
+
+    /**
+     * get php doc parser
+     * @return PhpDocParser
+     */
+    protected static function getPhpDocParser()
+    {
+        if (is_null(self::$phpDocParser)) {
+            $constExprParser = new ConstExprParser();
+            $typeParser = new TypeParser($constExprParser);
+            self::$phpDocParser = new PhpDocParser($typeParser, $constExprParser);
+        }
+        return self::$phpDocParser;
+    }
+
+    /**
+     * @param string $docComment
+     * @return PhpDocNode
+     */
+    protected function parseDocComment(string $docComment)
+    {
+        $lexer = self::getLexer();
+        $tokens = new TokenIterator($lexer->tokenize($docComment));
+        $parser = self::getPhpDocParser();
+        return $parser->parse($tokens);
+    }
+
+    /**
+     * parse method docComment
+     * @return PhpDocNode|null
+     */
+    protected function parseMethodDocComment(): PhpDocNode | null
+    {
+        $docComment = $this->method->getDocComment();
+
+        if (!$docComment) {
+            return null;
+        }
+        return $this->parseDocComment($docComment);
     }
 }

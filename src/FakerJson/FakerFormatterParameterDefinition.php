@@ -49,13 +49,49 @@ class FakerFormatterParameterDefinition
             $result['has_type'] = true;
 
             if ($this->parameterDocCommentNode->type instanceof UnionTypeNode) {
-                $result['type'] = implode(',', $this->parameterDocCommentNode->type->types);
+                $result['type'] = implode(',', $this->convertTypes($this->parameterDocCommentNode->type->types));
             } elseif ($this->parameterDocCommentNode->type instanceof IdentifierTypeNode) {
-                $result['type'] = $this->parameterDocCommentNode->type->name;
+                $result['type'] = $this->convertType($this->parameterDocCommentNode->type->name);
             } else {
                 $result['type'] = (string) $this->parameterDocCommentNode->type;
             }
         }
         return $result;
+    }
+
+    /**
+     * convert type and remove null/duplicated types
+     * @param array<IdentifierTypeNode> $types
+     * @return array<string>
+     */
+    protected function convertTypes(array $types): array
+    {
+        $converted = [];
+
+        foreach ($types as $type) {
+            if ($type === 'null') {
+                continue;
+            }
+            $converted[] = $this->convertType($type->name);
+        }
+        return array_unique($converted);
+    }
+
+    /**
+     * convert type
+     * @param string $type
+     * @return string
+     */
+    protected function convertType(string $type): string
+    {
+        return match ($type) {
+            '\DateTime' => 'datetime',
+            'int', 'float' => 'number',
+            'string' => 'string',
+            'bool' => 'boolean',
+            'array' => 'array',
+            'null' => 'null',
+            default => $type
+        };
     }
 }

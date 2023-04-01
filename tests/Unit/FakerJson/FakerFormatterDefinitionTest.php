@@ -15,7 +15,12 @@ class FakerFormatterDefinitionTest extends TestCase
     public function testGetFormatterDefinitionsFromClassname(): void
     {
         $definitions = FakerFormatterDefinition::getFormatterDefinitionsFromClassname('\Tests\Faker\Provider\TestFakerProvider');
+        $definitions = array_values($definitions);
         Assert::isArray($definitions[0]);
+        Assert::isArray($definitions[0]['parameters']);
+        Assert::isArray($definitions[0]['parameters'][0]);
+        Assert::isArray($definitions[0]['parameters'][1]);
+        Assert::isArray($definitions[0]['parameters'][2]);
         $this->assertEquals('testMethod1', $definitions[0]['method']);
         $this->assertEquals('TestFakerProvider', $definitions[0]['provider']);
         $this->assertEquals('default', $definitions[0]['locale']);
@@ -30,6 +35,9 @@ class FakerFormatterDefinitionTest extends TestCase
         $this->assertEquals('string', $definitions[0]['parameters'][2]['type']);
 
         Assert::isArray($definitions[1]);
+        Assert::isArray($definitions[1]['parameters']);
+        Assert::isArray($definitions[1]['parameters'][0]);
+        Assert::isArray($definitions[1]['parameters'][1]);
         $this->assertEquals('testMethod2', $definitions[1]['method']);
         $this->assertEquals('TestFakerProvider', $definitions[1]['provider']);
         $this->assertEquals('default', $definitions[1]['locale']);

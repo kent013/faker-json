@@ -124,16 +124,23 @@ class FakerFormatterDefinition
      */
     public static function getFormatterDefinitionsFromClassnames(array $classnames): array
     {
+        /** @var array<string,array<string,mixed>> $definitions */
         $definitions = [];
 
         foreach ($classnames as $classname) {
-            $definitions = array_merge($definitions, self::getFormatterDefinitionsFromClassname($classname));
+            $detectedDefinitions = self::getFormatterDefinitionsFromClassname($classname);
+
+            foreach ($detectedDefinitions as $method => $detectedDefinition) {
+                if (!isset($definitions[$method]) || $definitions[$method]['provider'] === 'Core') {
+                    $definitions[$method] = $detectedDefinition;
+                }
+            }
         }
         return array_values($definitions);
     }
 
     /**
-     * @return array<int, mixed>
+     * @return array<string,array<string,mixed>>
      * @param class-string $classname
      * @throws ReflectionException
      * @throws InvalidArgumentException
@@ -162,7 +169,7 @@ class FakerFormatterDefinition
             }
             $definitions[$methodName] = $formatterDefinition->toArray();
         }
-        return array_values($definitions);
+        return $definitions;
     }
 
     /**

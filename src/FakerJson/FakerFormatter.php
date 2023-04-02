@@ -101,7 +101,7 @@ class FakerFormatter
             foreach ($parameters as $value) {
                 if (isset($value['faker_definition']) && is_array($value['faker_definition']) && self::isFakerJsonArray($value['faker_definition'])) {
                     $instance->addParameter($value['name'], self::fromArray($value['faker_definition']));
-                } elseif (isset($value['value'])) {
+                } else {
                     $instance->addParameter($value['name'], $value['value']);
                 }
             }

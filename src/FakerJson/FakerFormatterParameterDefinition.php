@@ -3,8 +3,6 @@
 namespace FakerJson;
 
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
-use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
-use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionUnionType;
@@ -53,7 +51,7 @@ class FakerFormatterParameterDefinition
             $result['has_type'] = true;
 
             if ($type instanceof ReflectionNamedType) {
-                $result['type'] = $this->convertType($type->getName());
+                $result['type'] = FakerFormatterDefinition::convertType($type->getName());
             } else {
                 Assert::isInstanceOf($type, ReflectionUnionType::class);
                 $types = [];
@@ -61,64 +59,12 @@ class FakerFormatterParameterDefinition
                 foreach ($type->getTypes() as $type) {
                     $types[] = $type->getName();
                 }
-                $result['type'] = $this->convertTypes($types);
+                $result['type'] = FakerFormatterDefinition::convertTypes($types);
             }
         } elseif ($this->parameterDocCommentNode) {
             $result['has_type'] = true;
-
-            if ($this->parameterDocCommentNode->type instanceof UnionTypeNode) {
-                $types = [];
-
-                foreach ($this->parameterDocCommentNode->type->types as $type) {
-                    if ($type instanceof IdentifierTypeNode) {
-                        $types[] = $type->name;
-                    }
-                }
-                $result['type'] = $this->convertTypes($types);
-            } elseif ($this->parameterDocCommentNode->type instanceof IdentifierTypeNode) {
-                $result['type'] = $this->convertType($this->parameterDocCommentNode->type->name);
-            } else {
-                $result['type'] = (string) $this->parameterDocCommentNode->type;
-            }
+            $result['type'] = FakerFormatterDefinition::convertTypeNodeToString($this->parameterDocCommentNode->type);
         }
         return $result;
-    }
-
-    /**
-     * convert type and remove null/duplicated types
-     * @param array<string> $types
-     * @return string
-     */
-    protected function convertTypes(array $types): string
-    {
-        $converted = [];
-
-        foreach ($types as $type) {
-            if ($type === 'null') {
-                continue;
-            }
-            $converted[] = $this->convertType($type);
-        }
-        $converted = array_unique($converted);
-        sort($converted);
-        return  implode(',', $converted);
-    }
-
-    /**
-     * convert type
-     * @param string $type
-     * @return string
-     */
-    protected function convertType(string $type): string
-    {
-        return match ($type) {
-            '\DateTime' => 'datetime',
-            'int', 'float' => 'number',
-            'string' => 'string',
-            'bool' => 'boolean',
-            'array' => 'array',
-            'null' => 'null',
-            default => $type
-        };
     }
 }

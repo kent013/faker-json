@@ -6,6 +6,9 @@ use Exception;
 use HaydenPierce\ClassFinder\ClassFinder;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\TypeNode;
+use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
 use PHPStan\PhpDocParser\Parser\ConstExprParser;
 use PHPStan\PhpDocParser\Parser\PhpDocParser;
@@ -74,9 +77,15 @@ class FakerFormatterDefinition
 
         $docCommentNode = $this->parseMethodDocComment();
         $parameterDocCommentNodes = [];
+        $returnDocCommentNode = null;
 
         if ($docCommentNode) {
-            $parameterDocCommentNodes = $docCommentNode->getParamTagValues('@param');
+            $parameterDocCommentNodes = $docCommentNode->getParamTagValues();
+            $returnDocCommentNodes = $docCommentNode->getReturnTagValues();
+
+            if (isset($returnDocCommentNodes[0])) {
+                $returnDocCommentNode = $returnDocCommentNodes[0];
+            }
         }
 
         $parameters = $this->method->getParameters();
@@ -96,6 +105,10 @@ class FakerFormatterDefinition
             Assert::notNull($type);
             Assert::isInstanceOf($type, ReflectionNamedType::class);
             $result['return_type'] = $type->getName();
+        } elseif (!is_null($returnDocCommentNode)) {
+            $result['return_type'] = self::convertTypeNodeToString($returnDocCommentNode->type);
+        } else {
+            $result['return_type'] = 'string';
         }
         return $result;
     }
@@ -195,6 +208,61 @@ class FakerFormatterDefinition
         $locales = array_values($locales);
         sort($locales);
         return $locales;
+    }
+
+    public static function convertTypeNodeToString(TypeNode $typeNode): string
+    {
+        if ($typeNode instanceof UnionTypeNode) {
+            $types = [];
+
+            foreach ($typeNode->types as $type) {
+                if ($type instanceof IdentifierTypeNode) {
+                    $types[] = $type->name;
+                }
+            }
+            return self::convertTypes($types);
+        } elseif ($typeNode instanceof IdentifierTypeNode) {
+            return self::convertType($typeNode->name);
+        }
+        return (string) $typeNode;
+    }
+
+    /**
+     * convert type and remove null/duplicated types
+     * @param array<string> $types
+     * @return string
+     */
+    public static function convertTypes(array $types): string
+    {
+        $converted = [];
+
+        foreach ($types as $type) {
+            if ($type === 'null') {
+                continue;
+            }
+            $converted[] = self::convertType($type);
+        }
+        $converted = array_unique($converted);
+        sort($converted);
+        return  implode(',', $converted);
+    }
+
+    /**
+     * convert type
+     * @param string $type
+     * @return string
+     */
+    public static function convertType(string $type): string
+    {
+        return match ($type) {
+            '\DateTime' => 'datetime',
+            'int', 'float' => 'number',
+            'string' => 'string',
+            'bool' => 'boolean',
+            'array' => 'array',
+            'null' => 'null',
+            default => $type
+        };
     }
 
     /**

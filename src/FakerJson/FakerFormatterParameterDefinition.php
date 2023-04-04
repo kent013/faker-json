@@ -37,7 +37,14 @@ class FakerFormatterParameterDefinition
         ];
 
         if ($this->parameter->isDefaultValueAvailable()) {
-            $result['default_value'] = $this->parameter->getDefaultValue();
+            $defaultValue = $this->parameter->getDefaultValue();
+
+            if (is_array($defaultValue)) {
+                $result['default_value'] = implode(',', $defaultValue);
+            } else {
+                // @phpstan-ignore-next-line
+                $result['default_value'] = (string) $defaultValue;
+            }
         }
 
         if ($this->parameter->hasType()) {

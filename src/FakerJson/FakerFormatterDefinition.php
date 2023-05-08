@@ -6,6 +6,7 @@ use Exception;
 use HaydenPierce\ClassFinder\ClassFinder;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\TypelessParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
@@ -80,7 +81,13 @@ class FakerFormatterDefinition
         $returnDocCommentNode = null;
 
         if ($docCommentNode) {
-            $parameterDocCommentNodes = $docCommentNode->getParamTagValues();
+            $parameterDocCommentNodes = array_filter(
+                array_column($docCommentNode->getTagsByName('@param'), 'value'),
+                static function ($value): bool {
+                    return $value instanceof ParamTagValueNode || $value instanceof TypelessParamTagValueNode;
+                }
+            );
+
             $returnDocCommentNodes = $docCommentNode->getReturnTagValues();
 
             if (isset($returnDocCommentNodes[0])) {
@@ -266,11 +273,11 @@ class FakerFormatterDefinition
     }
 
     /**
-     * @param array<ParamTagValueNode> $parameterDocCommentNodes
+     * @param array<ParamTagValueNode|TypelessParamTagValueNode> $parameterDocCommentNodes
      * @param string $name
-     * @return ParamTagValueNode|null
+     * @return ParamTagValueNode|TypelessParamTagValueNode|null
      */
-    protected function filterParameterDocComment(array $parameterDocCommentNodes, string $name): ParamTagValueNode|null
+    protected function filterParameterDocComment(array $parameterDocCommentNodes, string $name): ParamTagValueNode|TypelessParamTagValueNode|null
     {
         foreach ($parameterDocCommentNodes as $parameterDocCommentNode) {
             if ($parameterDocCommentNode->parameterName === "\${$name}") {
